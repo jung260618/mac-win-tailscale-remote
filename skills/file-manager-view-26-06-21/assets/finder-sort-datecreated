@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# finder-sort-datecreated
+# Finder 정렬을 "생성일순(Keep arranged by: Date Created)"으로 모든 보기 묶음에 빠짐없이 박는다.
+# plist 전체(NetworkViewSettings·ComputerViewSettings·DesktopViewSettings·Standard·Search·Tag 등)를
+# 재귀로 훑어 arrangeBy/sortColumn 값을 전부 dateCreated로 교체한다.
+#
+# 사용법:
+#   finder-sort-datecreated            # 전역 기본값 + 홈 디렉토리 전체 .DS_Store 초기화
+#   finder-sort-datecreated <폴더경로>  # 전역 기본값 + 해당 폴더만 .DS_Store 초기화
+#
+set -euo pipefail
+
+PLIST="$HOME/Library/Preferences/com.apple.finder.plist"
+
+echo "▶ Finder 정렬을 '생성일순'으로 모든 보기에 적용합니다..."
+
+# 백업
+cp "$PLIST" "$PLIST.bak-$(/bin/date +%Y%m%d-%H%M%S)" 2>/dev/null || true
+
+# 파일이 source of truth가 되도록 Finder/데몬 종료
+killall Finder 2>/dev/null || true
+killall cfprefsd 2>/dev/null || true
+sleep 1
+
+# plist 전체를 재귀로 훑어 정렬 키를 모두 생성일로 교체 (불변 변환: 새 구조 반환)
+/usr/bin/python3 - "$PLIST" <<'PY'
+import plistlib, sys
+
+PATH = sys.argv[1]
+
+ARRANGE_VALUE = "dateCreated"   # icon/gallery 보기의 정렬 유지 기준
+SORT_VALUE    = "dateCreated"   # list 보기의 정렬 컬럼
+GROUP_VALUE   = "Date Created"  # 그룹 정렬 기준 문자열
+
+def transform(node):
+    if isinstance(node, dict):
+        out = {}
+        for k, v in node.items():
+            if k == "arrangeBy":
+                out[k] = ARRANGE_VALUE
+            elif k == "sortColumn":
+                out[k] = SORT_VALUE
+            elif k in ("FXArrangeGroupViewBy", "FXPreferredGroupBy"):
+                out[k] = GROUP_VALUE
+            else:
+                out[k] = transform(v)
+        return out
+    if isinstance(node, list):
+        return [transform(v) for v in node]
+    return node
+
+with open(PATH, "rb") as f:
+    data = plistlib.load(f)
+
+new = transform(data)
+
+# 일반 폴더 기본값(StandardViewSettings)이 비어 있어도 확실히 박아둔다
+std = new.setdefault("StandardViewSettings", {})
+std.setdefault("IconViewSettings", {})["arrangeBy"] = ARRANGE_VALUE
+std.setdefault("GalleryViewSettings", {})["arrangeBy"] = ARRANGE_VALUE
+std.setdefault("ListViewSettings", {})["sortColumn"] = SORT_VALUE
+std.setdefault("ExtendedListViewSettingsV2", {})["sortColumn"] = SORT_VALUE
+new["FXArrangeGroupViewBy"] = GROUP_VALUE
+
+with open(PATH, "wb") as f:
+    plistlib.dump(new, f, fmt=plistlib.FMT_BINARY)
+
+# 바뀐 정렬 키 개수 보고
+def count(node, n=0):
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k in ("arrangeBy", "sortColumn"):
+                n += 1
+            n = count(v, n)
+    elif isinstance(node, list):
+        for v in node:
+            n = count(v, n)
+    return n
+
+print(f"  · 정렬 키 {count(new)}개를 생성일(dateCreated)로 통일했습니다.")
+PY
+
+# .DS_Store 초기화 (인자 있으면 그 폴더만, 없으면 홈 전체 / 네트워크 마운트는 제외)
+TARGET="${1:-$HOME}"
+if [ -d "$TARGET" ]; then
+  COUNT=$( { find "$TARGET" -name .DS_Store -type f 2>/dev/null || true; } | wc -l | tr -d ' ')
+  echo "▶ '$TARGET' 아래 .DS_Store ${COUNT}개 초기화..."
+  find "$TARGET" -name .DS_Store -type f -delete 2>/dev/null || true
+else
+  echo "⚠ 경로를 찾을 수 없습니다: $TARGET (전역 기본값만 적용)"
+fi
+
+# Finder 재시작
+killall Finder 2>/dev/null || true
+sleep 1
+open -a Finder 2>/dev/null || true
+
+echo "✅ 완료. 이제 Finder가 모든 위치에서 생성일순으로 자동 정렬됩니다."
