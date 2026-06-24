@@ -11,12 +11,12 @@
 
 ### 🪟 윈도우
 ```
-새 PC 팀 환경을 세팅해줘. 먼저 이 한 줄을 실행해서 GitHub에서 받아 설치해줘: powershell -NoProfile -ExecutionPolicy Bypass -Command "$z=\"$env:TEMP\mwtr.zip\"; Invoke-WebRequest 'https://github.com/jung260618/mac-win-tailscale-remote/archive/refs/heads/main.zip' -OutFile $z; Expand-Archive $z \"$env:TEMP\mwtr\" -Force; & \"$env:TEMP\mwtr\mac-win-tailscale-remote-main\install.ps1\"" ; 끝나면 %USERPROFILE%\.claude\skills\team-pc-setup-26-06-24\SKILL.md 를 읽고 그 절차대로 탐색기 보기 설정과 (윈도우+맥이면) 원격연결까지 단계별로 도와줘.
+새 PC 팀 환경을 세팅해줘. 먼저 이 한 줄을 실행해서 GitHub에서 받아 설치해줘: powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/jung260618/mac-win-tailscale-remote/main/bootstrap.ps1 | iex" ; 끝나면 %USERPROFILE%\.claude\skills\team-pc-setup-26-06-24\SKILL.md 를 읽고 그 절차대로 탐색기 보기 설정과 (윈도우+맥이면) 원격연결까지 단계별로 도와줘.
 ```
 
 ### 🍎 맥
 ```
-새 PC 팀 환경을 세팅해줘. 먼저 이 한 줄을 실행해서 GitHub에서 받아 설치해줘: curl -fsSL https://github.com/jung260618/mac-win-tailscale-remote/archive/refs/heads/main.tar.gz | tar -xz -C /tmp && bash /tmp/mac-win-tailscale-remote-main/install.sh ; 끝나면 ~/.claude/skills/team-pc-setup-26-06-24/SKILL.md 를 읽고 그 절차대로 파인더 보기 설정까지 단계별로 도와줘.
+새 PC 팀 환경을 세팅해줘. 먼저 이 한 줄을 실행해서 GitHub에서 받아 설치해줘: curl -fsSL https://raw.githubusercontent.com/jung260618/mac-win-tailscale-remote/main/bootstrap.sh | bash ; 끝나면 ~/.claude/skills/team-pc-setup-26-06-24/SKILL.md 를 읽고 그 절차대로 파인더 보기 설정까지 단계별로 도와줘.
 ```
 
 > Claude 없이 터미널에서 직접 돌려도 됩니다 — 위 프롬프트의 `:` 와 `;` 사이 명령만 그대로 붙여넣으면 설치까지 진행됩니다. 파일관리자 보기 설정만 이후 Claude에게 부탁하세요.
